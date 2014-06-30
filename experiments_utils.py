@@ -1,6 +1,8 @@
 #!/usr/bin/python
 import os
 import json
+import shutil
+import unicodedata
 	
 def load_conf():
 	if os.path.exists(".conf") == False:
@@ -12,3 +14,26 @@ def load_conf():
 	password = json_data['password']
 	conf.close()
 	return (username, password)
+
+def clean_environment():
+	folder = './log'
+	for the_file in os.listdir(folder):
+		file_path = os.path.join(folder, the_file)
+		try:
+		        os.unlink(file_path)
+		except Exception, e:
+		    print e
+
+def isNumber(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        pass
+
+    try:
+        unicodedata.numeric(s)
+        return True
+    except (TypeError, ValueError):
+        pass
+	return False

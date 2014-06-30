@@ -23,6 +23,7 @@ class iperfNode(object):
 			os.remove(path_log)
 		self.log = open( path_log, "a")
 		self.STOP = False
+		self.return_data = ""
 		self.t_connect()
 
 	def t_connect(self):    
@@ -41,7 +42,7 @@ class iperfNode(object):
 		buff = ''
 		self.chan.send(command+"\r")
 		buff = self.wait_command(command, verbose)
-		return buff
+		self.return_data =  buff
 
 	def exe(self, command):
 		buff = ''
@@ -98,6 +99,22 @@ class iperfClient(iperfNode):
 		self.log.write("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n")
 		iperfNode.run(self, params, True)
 
+	def getLoss(self):
+		p_loss = re.compile('[0-9]*.[0-9]*%')
+		match = p_loss.search(self.return_data)
+		if match == None:
+			return "N/A"
+		s = (match.group(0).replace("%",""))
+		if "(" in s:
+			return s[1:]
+		return s
+
+	def getJitter(self):
+		p_ms = re.compile('[0-9]*.[0-9]* ms')
+		match = p_ms.search(self.return_data)
+		if match == None:
+			return "N/A"
+		return (match.group(0).replace(" ms",""))
 
 class iperfServer(iperfNode):
 	

@@ -6,6 +6,8 @@ import time
 import math
 from threading import Thread
 from collections import defaultdict
+import re
+import string
 
 class measPoller(object):
 	
@@ -14,10 +16,10 @@ class measPoller(object):
 	KEYCPU = 'cpu_perc'
 	KEYTS = 'timestamp'
 
-	def __init__(self, length, interval, vms, xenaddr):
+	def __init__(self, length, interval, vms, xenaddr, delay):
 		self.cpu_perc = defaultdict(list)
 		self.ts = defaultdict(list)
-		self.thread = Thread(target = self.getVMTop, args=(length, interval, vms, xenaddr))
+		self.thread = Thread(target = self.getVMTop, args=(length, interval, vms, xenaddr, delay))
 		self.NodeToavgCPU = {}
 		self.NodeTovarCPU = {}
 		self.NodeToavgTS = {}
@@ -34,7 +36,7 @@ class measPoller(object):
 	def join(self):
 		self.thread.join()
 
-	def getVMTop(self, length, interval, vm, xenaddr):
+	def getVMTop(self, length, interval, vm, xenaddr, delay):
 		request = {'message':'getVMTop', 'vm_list':vm}
 		for i in range(0, length):
 			ts_start = time.time()
@@ -42,9 +44,12 @@ class measPoller(object):
 			s.connect((xenaddr, self.XENPORT))
 			s.send(json.dumps(request))
 			result = json.loads(s.recv(self.MSIZE))
-			for vminfo in result:
-				self.cpu_perc[vminfo['name']].append(float(vminfo[self.KEYCPU]))
-				self.ts[vminfo['name']].append(float(vminfo[self.KEYTS]))
+			if delay > 0:
+				delay = delay - 1
+			else :
+				for vminfo in result:
+					self.cpu_perc[vminfo['name']].append(float(vminfo[self.KEYCPU]))
+					self.ts[vminfo['name']].append(float(vminfo[self.KEYTS]))
 			s.close()
 			ts_end = time.time()
 			diff = interval - (ts_end-ts_start)
@@ -104,3 +109,17 @@ class measPoller(object):
 		if self.NodeTovarTS[vm] == 0.0:
 			self.computeVarTS(vm)
 		return math.sqrt(self.NodeTovarTS[vm])	
+
+
+if __name__ == '__main__':
+
+	data = {'message':'getVMTop', 'vm_list':['Host1']}
+	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	s.connect(('10.216.32.22', 8888))
+	s.send(json.dumps(data))
+	result = json.loads(s.recv(1024))
+	print result
+	s.close()
+
+
+
