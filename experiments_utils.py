@@ -3,6 +3,7 @@ import os
 import json
 import shutil
 import unicodedata
+import sys
 	
 def load_conf():
 	if os.path.exists(".conf") == False:
@@ -17,12 +18,13 @@ def load_conf():
 
 def clean_environment():
 	folder = './log'
-	for the_file in os.listdir(folder):
-		file_path = os.path.join(folder, the_file)
-		try:
-		        os.unlink(file_path)
-		except Exception, e:
-		    print e
+	if os.path.exists(folder):
+		for the_file in os.listdir(folder):
+			file_path = os.path.join(folder, the_file)
+			try:
+				    os.unlink(file_path)
+			except Exception, e:
+				print e
 
 def isNumber(s):
     try:

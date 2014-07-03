@@ -24,8 +24,24 @@ See [Dreamer-Measurement-Tools How-To](http://netgroup.uniroma2.it/twiki/bin/vie
 Measurement Tools Dependencies
 =============================
 
-1) netaddr (pip)
+1) paramiko (pip)
 
-2) ipaddress (pip)
+Usage
+=====
 
-3) [Dreamer-Topology-Parser-and-Validator](https://github.com/netgroup/Dreamer-Topology-Parser-and-Validator) (git)
+Example of usage Measurement Tools
+
+		if __name__ == '__main__':
+			# Delete Log files and other clean
+			clean_environment()
+			# Load username and password
+			(username, password) = load_conf()
+			# Create Iperf Client and Server
+			c1 = iperfClient(["10.216.33.182", username, password])
+			s1 = iperfServer(["10.216.33.180", username, password])	
+			# Start the Iperf Server
+			s1.start()
+			# Create an experiment: 20 Round, Client, Server, Params (Server IP, Round length, Iperf Rate, Initial Delay), Map VMtoXen
+			first = Experiment(20, c1, s1, ["10.0.3.2", 20, 20, 1, 10],{"10.216.32.22":["Host1"]})
+			# Start the experiment
+			first.start()

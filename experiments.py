@@ -19,6 +19,9 @@ class Experiment(object):
 				rate = params[2]
 				ps = (rate * math.pow(10,6))/(1000*8)
 				name = "%sps_%sm_%s.exp" % (ps, rate, vm)
+				path = "exp/"
+				if os.path.exists(path) == False:
+					os.mkdir(path, 0755)
 				expath = "./exp/%s" % name
 				self.NodeToFile[vm] = open( expath, "w")
 		self.cli = client

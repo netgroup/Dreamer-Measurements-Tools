@@ -18,6 +18,9 @@ class iperfNode(object):
 		self.chan = None
 		self.conn = None
 		self.process = None
+		path = "log/"
+		if os.path.exists(path) == False:
+			os.mkdir(path, 0755)
 		path_log = "./log/%s.log" % host
 		if os.path.exists(path_log):
 			os.remove(path_log)
