@@ -59,7 +59,7 @@ class Experiment(object):
 			print "Client %s vs Server %s: Run %s - Rate %sm" % (self.cli.host, self.ser.host, (i+1), params[2])
 			self.cli.start(ip_server, str(length), rate)
 			for xen, vms in XensToVms.iteritems():
-				XensToPollers[key]=(measPoller(params[1], interval, vms, xen, delay))
+				XensToPollers[key]=(XentopPoller(params[1], interval, vms, xen, delay))
 			for xen, poller in XensToPollers.iteritems():
 				poller.start()
 			for xen, poller in XensToPollers.iteritems():
