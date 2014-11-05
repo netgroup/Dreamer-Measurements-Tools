@@ -86,9 +86,10 @@ class iperfClient(iperfNode):
 	def __init__(self, params):
 		iperfNode.__init__(self, params[0], params[1], params[2])
 		self.op_thread = None
+		self.server = params[3]
 
-	def start(self, server, length, rate):
-		server = "-c %s" % server
+	def start(self, length, rate):
+		server = "-c %s" % self.server
 		length = "-t %s" % length
 		rate = "-b %sm" % rate
 		params = "iperf %s %s %s %s %s %s" % (server, self.UDP, rate, self.DGRAMSIZE, length, self.BUFFSIZE)

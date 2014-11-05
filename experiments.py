@@ -11,12 +11,43 @@ from experiments_utils import isNumber
 
 class Experiment(object):
 
+	def __init__(self, nround, clients, servers, params, vminfo):
+		self.NodeToFile = {}
+		self.clients = clients
+		self.servers = servers
+		self.nround = nround
+		self.executor = Thread(target=self.executeExperiment, args=(params,vminfo))
+
+	def start(self): 
+		self.executor.start()
+		self.executor.join()
+
+	def executeExperiment(self, params, XensToVms):
+		raise NotImplementedError("Abstract Method")
+
+	def getClientsJitter(self):
+		avg = 0.0
+		for client in self.clients:
+			avg = avg + client.getJitter()
+		avg = avg / len(self.clients)
+		return avg
+
+	def getClientsLoss(self):
+		avg = 0.0
+		for client in self.clients:
+			avg = avg + client.getLoss()
+		avg = avg / len(self.clients)
+		return avg
+
+
+class XentopExperiment(Experiment):
+
 	def __init__(self, nround, client, server, params, XensToVms):
-		self.NodeToFile = {}	
+		Experiment.__init__(nround, clients, servers, params, XenToVms)
 		for key, value in XensToVms.iteritems():	
 			vms = value
 			for vm in vms:
-				rate = params[2]
+				rate = params[1]
 				ps = (rate * math.pow(10,6))/(1000*8)
 				name = "%sps_%sm_%s.exp" % (ps, rate, vm)
 				path = "exp/"
@@ -24,31 +55,26 @@ class Experiment(object):
 					os.mkdir(path, 0755)
 				expath = "./exp/%s" % name
 				self.NodeToFile[vm] = open( expath, "w")
-		self.cli = client
-		self.ser = server
-		self.nround = nround
-		self.executor = Thread(target=self.executeExperiment, args=(params,XensToVms))
-
-	def start(self): 
-		self.executor.start()
-		self.executor.join()
 
 	def executeExperiment(self, params, XensToVms):
 		for key, value in XensToVms.iteritems():	
 			vms = value
 			for vm in vms:
 				self.NodeToFile[vm].write("round(N)\t\t\tavgCPU(%)\t\t\tvarCPU(%)\t\t\tdevstdCPU(%)\t\t\tavgTS(%)\t\t\tjitter(ms)\t\t\tloss(%)\n")
-		ip_server = params[0]
-		rate = params[2]
-		interval = params[3]
-		length = (params[1])*(interval*2)
-		delay = params[4]
+		rate = params[1]
+		interval = params[2]
+		length = (params[0])*(interval*2)
+		delay = params[3]
 		
 		consec_error = 0
 		exper_error = 0
 		limit_consec = int(self.nround/4)
 		limit_exper = int(self.nround/2)
 	
+		for server in self.servers:
+				print "Starting Server %s" % server.host
+				server.start()		
+
 		print "Max Sporadic Errors %s - Consecutive Errors %s" %(limit_exper, limit_consec)
 		i = 0
 		while i < self.nround:
@@ -56,24 +82,26 @@ class Experiment(object):
 				print "Exit...Reach Limit"
 				break	
 			XensToPollers = {}
-			print "Client %s vs Server %s: Run %s - Rate %sm" % (self.cli.host, self.ser.host, (i+1), params[2])
-			self.cli.start(ip_server, str(length), rate)
+			for client in self.clients:			
+				print "Client %s vs Server %s: Run %s - Rate %sm" % (client.host, client.server, (i+1), params[1])
+				client.start(str(length), rate)
 			for xen, vms in XensToVms.iteritems():
-				XensToPollers[key]=(XentopPoller(params[1], interval, vms, xen, delay))
+				XensToPollers[xen]=(XentopPoller(params[0], interval, vms, xen, delay))
 			for xen, poller in XensToPollers.iteritems():
 				poller.start()
 			for xen, poller in XensToPollers.iteritems():
 				poller.join()
-			self.cli.join()
+			for client in self.clients:
+				client.join()
 			jitter = "N/A"
 			loss = "N/A"
-			jitter = self.cli.getJitter()
-			loss = self.cli.getLoss()
+			jitter = self.getClientsJitter()
+			loss = self.getClientsLoss()
 			for key, value in XensToVms.iteritems():	
 				vms = value
 				for vm in vms:
 					self.NodeToFile[vm].write("%s\t\t\t\t%s\t\t\t\t%s\t\t\t\t%s\t\t\t\t%s\t\t\t\t%s\t\t\t\t%s\n" %(i+1, XensToPollers[key].getAvgCPU(vm),  XensToPollers[key].getVarCPU(vm),  XensToPollers[key].getDEVCPU(vm),  XensToPollers[key].getAvgTS(vm), jitter, loss))
-			if (isNumber(loss) and float(loss) < 1.0):
+			if (isNumber(loss) and float(loss) < 2.0):
 				consec_error = 0
 				i = i + 1
 			else:
