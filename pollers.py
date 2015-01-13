@@ -159,26 +159,46 @@ class ZabbixPoller(Poller):
 			self.map_id_to_name[item[0][self.KEYITEMID]]=vm
 
 	def getVMsCPU(self, length, interval, vms, xenaddr, delay):
-
-		for i in range(0, length):
+		i = 0
+		print "Zabbix Poller discards first \"delay\" values"
+		last_ts = 0
+		# Discard first "delay" values
+		while (delay >= 0):
 			ts_start = time.time()
 			items = self.zapi.item.get(filter={self.KEYNAME:vms})
 			ts_end = time.time()
-			if delay > 0:
-				delay = delay - 1
-			else:
-				for item in items:
+			for item in items:
+					if item:
+						ts_value = float(item[self.KEYTS])			
+						if ts_value != last_ts:
+							delay = delay - 1
+							last_ts = ts_value
+						break
+			ts_end = time.time()
+			diff = 2 - (ts_end-ts_start)
+			if diff > 0:
+				time.sleep(diff)
+		print "Zabbix Poller takes data"
+		# Take data
+		while i < (length * len(vms)):
+			ts_start = time.time()
+			items = self.zapi.item.get(filter={self.KEYNAME:vms})
+			ts_end = time.time()
+			for item in items:
 					if item:
 						vm = self.map_id_to_name[item[self.KEYITEMID]]
-						self.cpu_perc[vm].append(float(item[self.KEYCPU]))
-						self.ts[vm].append(float(item[self.KEYTS]))
+						ts_value = float(item[self.KEYTS])
+						if ts_value not in self.ts[vm]:
+							self.cpu_perc[vm].append(float(item[self.KEYCPU]))
+							self.ts[vm].append(ts_value)
+							i = i + 1
 			ts_end = time.time()
-			diff = interval - (ts_end-ts_start)
+			diff = 2 - (ts_end-ts_start)
 			if diff > 0:
 				time.sleep(diff)	
 
 if __name__ == '__main__':
-	poller = ZabbixPoller(3, 40, ['DREAMER-TESTBED-LOCALCTL-21', 'DREAMER-TESTBED-COSHI-51'], 1)
+	poller = ZabbixPoller(10, 30, ['DREAMER-TESTBED-OSHI-PE-23'], 1)
 	poller.start()
 	poller.join()
 	for key, cpu_data in poller.cpu_perc.iteritems():

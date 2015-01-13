@@ -1,5 +1,6 @@
 *.pyc
-*conf*
+.zabbix.conf
+.conf
 *~
 *.log
 dummy

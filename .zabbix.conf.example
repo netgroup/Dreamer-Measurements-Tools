@@ -1,0 +1,5 @@
+{
+	"server":"Zabbix's URL",
+	"username":"your Zabbix's username",
+	"password":"your Zabbix's password"
+}
